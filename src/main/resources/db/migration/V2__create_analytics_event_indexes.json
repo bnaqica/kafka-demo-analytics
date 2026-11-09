@@ -1,0 +1,8 @@
+{
+  "createIndexes": "analytics_event",
+  "indexes": [
+    { "key": { "eventType": 1 }, "name": "ix_analytics_event_type" },
+    { "key": { "occurredAt": -1 }, "name": "ix_analytics_event_occurred_at" },
+    { "key": { "customerId": 1 }, "name": "ix_analytics_event_customer_id" }
+  ]
+}

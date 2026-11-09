@@ -1,0 +1,44 @@
+server:
+  port: 8083
+
+spring:
+  application:
+    name: kafka-demo-analytics
+  mongodb:
+    uri: ${MONGODB_URI}
+    representation:
+      uuid: standard
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS}
+    consumer:
+      group-id: kafka-demo-analytics
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      # Only used to publish failed records to <topic>-dlq
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${JWT_ISSUER_URI}
+
+app:
+  kafka:
+    # Comma-separated; every topic listed here is counted
+    topics: customer-events,email-events
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+# API docs are only switched on by the `local` profile
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
