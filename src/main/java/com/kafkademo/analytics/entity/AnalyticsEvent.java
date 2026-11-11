@@ -9,6 +9,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 /**
  * One event observed on any topic. The producer's {@code eventId} is the document id, so a
  * redelivered event can never be counted twice.
+ *
+ * @param payload the event exactly as received; absent on records created through the API
  */
 @Builder
 @Document("analytics_event")
@@ -18,4 +20,5 @@ public record AnalyticsEvent(
         String sourceTopic,
         UUID customerId,
         Instant occurredAt,
-        Instant receivedAt) {}
+        Instant receivedAt,
+        String payload) {}

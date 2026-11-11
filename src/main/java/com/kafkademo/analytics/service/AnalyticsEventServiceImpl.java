@@ -29,7 +29,7 @@ public class AnalyticsEventServiceImpl implements AnalyticsEventService {
     public AnalyticsEventResponse create(AnalyticsEventRequest request) {
         UUID eventId = request.eventId() != null ? request.eventId() : UUID.randomUUID();
         try {
-            AnalyticsEvent saved = repository.insert(toEntity(eventId, request, Instant.now(clock)));
+            AnalyticsEvent saved = repository.insert(toEntity(eventId, request, Instant.now(clock), request.payload()));
             log.info("Recorded {} {} from {}", saved.eventType(), saved.eventId(), saved.sourceTopic());
             return toResponse(saved);
         } catch (DuplicateKeyException ex) {
@@ -51,8 +51,9 @@ public class AnalyticsEventServiceImpl implements AnalyticsEventService {
 
     @Override
     public AnalyticsEventResponse update(UUID eventId, AnalyticsEventRequest request) {
-        AnalyticsEvent saved =
-                repository.save(toEntity(eventId, request, find(eventId).receivedAt()));
+        AnalyticsEvent existing = find(eventId);
+        String payload = request.payload() != null ? request.payload() : existing.payload();
+        AnalyticsEvent saved = repository.save(toEntity(eventId, request, existing.receivedAt(), payload));
         log.info("Updated analytics event {}", eventId);
         return toResponse(saved);
     }
@@ -72,7 +73,8 @@ public class AnalyticsEventServiceImpl implements AnalyticsEventService {
         return repository.findById(eventId).orElseThrow(() -> new AnalyticsEventNotFoundException(eventId));
     }
 
-    private static AnalyticsEvent toEntity(UUID eventId, AnalyticsEventRequest request, Instant receivedAt) {
+    private static AnalyticsEvent toEntity(
+            UUID eventId, AnalyticsEventRequest request, Instant receivedAt, String payload) {
         return AnalyticsEvent.builder()
                 .eventId(eventId)
                 .eventType(request.eventType())
@@ -80,6 +82,7 @@ public class AnalyticsEventServiceImpl implements AnalyticsEventService {
                 .customerId(request.customerId())
                 .occurredAt(request.occurredAt())
                 .receivedAt(receivedAt)
+                .payload(payload)
                 .build();
     }
 
@@ -91,6 +94,7 @@ public class AnalyticsEventServiceImpl implements AnalyticsEventService {
                 .customerId(event.customerId())
                 .occurredAt(event.occurredAt())
                 .receivedAt(event.receivedAt())
+                .payload(event.payload())
                 .build();
     }
 }

@@ -52,6 +52,25 @@ class AnalyticsEventServiceImplTest {
     }
 
     @Test
+    void createKeepsThePayload() {
+        when(repository.insert(any(AnalyticsEvent.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        assertThat(service.create(request(ID)).payload()).isEqualTo("{\"a\":1}");
+    }
+
+    @Test
+    void updateWithoutAPayloadKeepsTheSavedOne() {
+        AnalyticsEvent saved = new AnalyticsEvent(
+                ID, "customer-addition", "customer-change-event", UUID.randomUUID(), NOW, RECEIVED, "{\"saved\":true}");
+        when(repository.findById(ID)).thenReturn(Optional.of(saved));
+        when(repository.save(any(AnalyticsEvent.class))).thenAnswer(inv -> inv.getArgument(0));
+        AnalyticsEventRequest noPayload = new AnalyticsEventRequest(
+                ID, "customer-addition", "customer-change-event", UUID.randomUUID(), NOW, null);
+
+        assertThat(service.update(ID, noPayload).payload()).isEqualTo("{\"saved\":true}");
+    }
+
+    @Test
     void createGeneratesEventIdWhenAbsent() {
         when(repository.insert(any(AnalyticsEvent.class))).thenAnswer(inv -> inv.getArgument(0));
 
@@ -74,7 +93,7 @@ class AnalyticsEventServiceImplTest {
 
         assertThat(updated.eventId()).isEqualTo(ID);
         assertThat(updated.receivedAt()).isEqualTo(RECEIVED);
-        assertThat(updated.eventType()).isEqualTo("EMAIL_SENT");
+        assertThat(updated.eventType()).isEqualTo("customer-change");
     }
 
     @Test
@@ -95,10 +114,12 @@ class AnalyticsEventServiceImplTest {
     }
 
     private static AnalyticsEventRequest request(UUID eventId) {
-        return new AnalyticsEventRequest(eventId, "EMAIL_SENT", "email-events", UUID.randomUUID(), NOW);
+        return new AnalyticsEventRequest(
+                eventId, "customer-change", "customer-change-event", UUID.randomUUID(), NOW, "{\"a\":1}");
     }
 
     private static AnalyticsEvent existing() {
-        return new AnalyticsEvent(ID, "CUSTOMER_CREATED", "customer-events", UUID.randomUUID(), NOW, RECEIVED);
+        return new AnalyticsEvent(
+                ID, "customer-addition", "customer-change-event", UUID.randomUUID(), NOW, RECEIVED, null);
     }
 }

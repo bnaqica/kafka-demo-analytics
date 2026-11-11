@@ -24,11 +24,12 @@ spring:
       resourceserver:
         jwt:
           issuer-uri: ${JWT_ISSUER_URI}
+          audiences: kafka-demo-api
 
 app:
   kafka:
-    # Comma-separated; every topic listed here is counted
-    topics: customer-events,email-events
+    # Comma-separated; every event on a topic listed here is saved
+    topics: customer-change-event
 
 management:
   endpoints:

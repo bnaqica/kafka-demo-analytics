@@ -7,15 +7,23 @@ Defines who can call the analytics API: both roles can read, and only customer-a
 ## ADDED Requirements
 
 ### Requirement: Token required in every profile
-Every endpoint except the health check SHALL require a valid `kafka-demo` realm bearer token in every profile. In the `local` profile only, the Swagger pages SHALL be open.
+Every endpoint except the health check SHALL require a valid `kafka-demo` realm bearer token issued for the `kafka-demo-api` audience in every profile. In the `local` profile only, the Swagger pages SHALL be open.
 
 #### Scenario: No token
 - **WHEN** a request without a token calls an analytics endpoint
 - **THEN** the API responds 401
 
+#### Scenario: Token for another audience
+- **WHEN** a request calls an analytics endpoint with a valid realm token whose audience does not include `kafka-demo-api`
+- **THEN** the API responds 401
+
 #### Scenario: Swagger in local
 - **WHEN** the Swagger page is requested without a token in the `local` profile
 - **THEN** the page is returned
+
+#### Scenario: Swagger elsewhere
+- **WHEN** the API docs are requested in a profile other than `local`
+- **THEN** they are not served
 
 ### Requirement: Reads allowed for both roles
 GET endpoints SHALL be allowed for `customer-admin` and `customer-viewer`.

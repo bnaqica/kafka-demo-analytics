@@ -17,4 +17,5 @@ public record AnalyticsEventRequest(
         @NotBlank String eventType,
         @NotBlank String sourceTopic,
         UUID customerId,
-        @NotNull Instant occurredAt) {}
+        @NotNull Instant occurredAt,
+        String payload) {}

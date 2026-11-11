@@ -1,6 +1,6 @@
 # kafka-demo-analytics
 
-Listens to every event on `customer-events` and `email-events`, stores each one in MongoDB, and serves counts by event type.
+Listens to `customer-change-event`, saves each event in MongoDB exactly as it arrived, and serves counts by event type.
 
 Part of the Kafka Demo system — see [docs/architecture.md](docs/architecture.md).
 
@@ -10,7 +10,7 @@ Part of the Kafka Demo system — see [docs/architecture.md](docs/architecture.m
 | Data store | MongoDB, schema managed by Flyway |
 | Port | 8083 |
 | Produces | — (only DLQ records) |
-| Consumes | `customer-events`, `email-events` (group `kafka-demo-analytics`) |
+| Consumes | `customer-change-event` (group `kafka-demo-analytics`) |
 
 ## Prerequisites
 
@@ -35,20 +35,21 @@ Swagger UI is at <http://localhost:8083/swagger-ui.html> in this profile.
 Try it:
 
 ```bash
-curl -s localhost:8083/api/analytics/summary
-curl -s 'localhost:8083/api/analytics/events?limit=5'
+curl -s -H "Authorization: Bearer $TOKEN" localhost:8083/api/analytics/summary
+curl -s -H "Authorization: Bearer $TOKEN" 'localhost:8083/api/analytics/events?limit=5'
 ```
 
 ## API
 
-Every endpoint except `/actuator/health` needs a Keycloak bearer token in the `Authorization` header, and returns 401
-without one. Authentication is off in the `local` profile, which `./gradlew bootRun` uses by default. To get a token, see
-the Keycloak section of the local-docker README.
+Every endpoint except `/actuator/health` needs a Keycloak bearer token in the `Authorization` header in every profile, and
+returns 401 without one. GET allows `customer-admin` and `customer-viewer`; POST, PUT and DELETE need `customer-admin` and
+return 403 otherwise. To get a token, see the Keycloak section of the local-docker README. Keycloak must be running to
+call the API locally.
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/analytics/summary` | `{"totalEvents": n, "eventsByType": {"CUSTOMER_CREATED": n, ...}}` |
-| `POST` | `/api/analytics/events` | Create an event. Body: `{"eventType","sourceTopic","occurredAt"}`, plus optional `eventId` and `customerId`. 201 + `Location`; 409 if `eventId` already exists. |
+| `GET` | `/api/analytics/summary` | `{"totalEvents": n, "eventsByType": {"customer-addition": n, ...}}` |
+| `POST` | `/api/analytics/events` | Create an event. Body: `{"eventType","sourceTopic","occurredAt"}`, plus optional `eventId`, `customerId` and `payload`. 201 + `Location`; 409 if `eventId` already exists. |
 | `GET` | `/api/analytics/events?limit=20` | Most recent events (limit 1–200). |
 | `GET` | `/api/analytics/events/{eventId}` | One event; 404 if unknown. |
 | `PUT` | `/api/analytics/events/{eventId}` | Update an event. Same body as create; `eventId` is ignored. 404 if unknown. |

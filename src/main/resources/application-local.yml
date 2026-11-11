@@ -1,4 +1,4 @@
-# Turns off authentication. Points at the stacks in the local-docker repo (mongoDB/ and kafka/).
+# Points at the stacks in the local-docker repo (mongoDB/, kafka/ and keycloak/). Requires tokens like every profile.
 spring:
   mongodb:
     uri: mongodb://kafka_demo_analytics_local:local@localhost:27017/kafka_demo_analytics_db?authSource=kafka_demo_analytics_db
@@ -8,7 +8,7 @@ spring:
     oauth2:
       resourceserver:
         jwt:
-          issuer-uri: http://localhost:8180/realms/kafka-demo   # the local-docker Keycloak; authentication is off in this profile
+          issuer-uri: http://localhost:8180/realms/kafka-demo   # the local-docker Keycloak
 springdoc:
   api-docs:
     enabled: true

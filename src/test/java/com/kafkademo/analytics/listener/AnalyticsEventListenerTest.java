@@ -21,8 +21,8 @@ class AnalyticsEventListenerTest {
 
     @Test
     void passesTopicAndPayloadToService() {
-        listener.onEvent(new ConsumerRecord<>("email-events", 0, 0L, "key", "{\"a\":1}"));
+        listener.onEvent(new ConsumerRecord<>("customer-change-event", 0, 0L, "key", "{\"a\":1}"));
 
-        verify(eventRecordingService).record("email-events", "{\"a\":1}");
+        verify(eventRecordingService).record("customer-change-event", "{\"a\":1}");
     }
 }

@@ -3,6 +3,7 @@ package com.kafkademo.analytics.service;
 import com.kafkademo.analytics.dto.request.AnalyticsEventRequest;
 import com.kafkademo.analytics.exception.DuplicateAnalyticsEventException;
 import java.time.Instant;
+import java.time.format.DateTimeParseException;
 import java.util.UUID;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -12,8 +13,8 @@ import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Action service: records events consumed from Kafka, changing data only through {@link AnalyticsEventService}.
- * Only the envelope fields every event shares (eventId, eventType, occurredAt, customerId) are read, so new
- * event types are counted without code changes. See docs/kafka-events.md.
+ * Only the envelope fields every event shares (eventId, eventType, occurredAt, customerId) are read, and the rest is
+ * saved as received, so new event types are recorded without code changes. See docs/kafka-events.md.
  */
 @Slf4j
 @RequiredArgsConstructor
@@ -26,14 +27,14 @@ public class EventRecordingService {
     /** Returns false if this eventId was already recorded (at-least-once redelivery). */
     public boolean record(String topic, String payload) {
         JsonNode node = jsonMapper.readTree(payload);
-        String customerId = node.path("customerId").asString(null);
         UUID eventId = UUID.fromString(requireText(node, "eventId"));
         AnalyticsEventRequest request = AnalyticsEventRequest.builder()
                 .eventId(eventId)
                 .eventType(requireText(node, "eventType"))
                 .sourceTopic(topic)
-                .customerId(customerId == null ? null : UUID.fromString(customerId))
-                .occurredAt(Instant.parse(requireText(node, "occurredAt")))
+                .customerId(UUID.fromString(requireText(node, "customerId")))
+                .occurredAt(occurredAt(node))
+                .payload(payload)
                 .build();
         try {
             eventService.create(request);
@@ -41,6 +42,14 @@ public class EventRecordingService {
         } catch (DuplicateAnalyticsEventException ex) {
             log.info("Event {} already recorded, skipping", eventId);
             return false;
+        }
+    }
+
+    private static Instant occurredAt(JsonNode node) {
+        try {
+            return Instant.parse(requireText(node, "occurredAt"));
+        } catch (DateTimeParseException ex) {
+            throw new IllegalArgumentException("Event has an unreadable 'occurredAt'", ex);
         }
     }
 

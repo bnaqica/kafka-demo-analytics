@@ -24,11 +24,14 @@ class AnalyticsSummaryServiceImplTest {
     @Test
     void summaryTotalsCountsByType() {
         when(eventService.countByEventType())
-                .thenReturn(List.of(new EventTypeCount("EMAIL_SENT", 2), new EventTypeCount("CUSTOMER_CREATED", 3)));
+                .thenReturn(
+                        List.of(new EventTypeCount("customer-change", 2), new EventTypeCount("customer-addition", 3)));
 
         AnalyticsSummary summary = service.summary();
 
         assertThat(summary.totalEvents()).isEqualTo(5);
-        assertThat(summary.eventsByType()).containsEntry("CUSTOMER_CREATED", 3L).containsEntry("EMAIL_SENT", 2L);
+        assertThat(summary.eventsByType())
+                .containsEntry("customer-addition", 3L)
+                .containsEntry("customer-change", 2L);
     }
 }

@@ -1,6 +1,6 @@
 # CLAUDE.md — kafka-demo-analytics
 
-Listens to every event on `customer-events` and `email-events`, stores each one in MongoDB, and serves counts by event type.
+Listens to `customer-change-event`, saves each event in MongoDB exactly as it arrived, and serves counts by event type.
 
 One of four repos in the Kafka Demo system (customer, email, analytics, ui). Local infrastructure lives
 in `../../local-docker`. Full picture: `docs/architecture.md`. Event contracts: `docs/kafka-events.md`.
@@ -62,8 +62,7 @@ src/test/java/...          tests mirror the main package layout
 - Tests mirror the main package. Unit-test services with Mockito; use `@WebMvcTest` for controllers.
 - Database tests run against real MongoDB through Testcontainers: `@Import(TestcontainersConfiguration.class)`.
   Don't use an embedded database.
-- Every endpoint needs a JWT, except the health check. Only the `local` profile turns authentication off, so never
-  activate it outside a developer machine.
+- Every endpoint needs a JWT in every profile, except the health check. The `local` profile only opens the Swagger pages.
 
 ## Workflow
 

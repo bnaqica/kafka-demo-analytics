@@ -23,8 +23,8 @@ import tools.jackson.databind.json.JsonMapper;
 class EventRecordingServiceTest {
 
     private static final UUID EVENT_ID = UUID.fromString("6dde44f1-7abf-4a6c-b1bb-3902d50ce0f6");
-    private static final String EMAIL_SENT = """
-            {"eventId":"6dde44f1-7abf-4a6c-b1bb-3902d50ce0f6","eventType":"EMAIL_SENT",
+    private static final String EVENT = """
+            {"eventId":"6dde44f1-7abf-4a6c-b1bb-3902d50ce0f6","eventType":"customer-change",
              "occurredAt":"2026-11-07T18:11:10.588189Z","customerId":"ca77df95-f94f-4682-93b7-b82f74cb808d",
              "to":"alan@example.com"}
             """;
@@ -41,31 +41,67 @@ class EventRecordingServiceTest {
 
     @Test
     void recordsEnvelopeOfAnyEvent() {
-        assertThat(service.record("email-events", EMAIL_SENT)).isTrue();
+        assertThat(service.record("customer-change-event", EVENT)).isTrue();
 
         ArgumentCaptor<AnalyticsEventRequest> captor = ArgumentCaptor.forClass(AnalyticsEventRequest.class);
         verify(eventService).create(captor.capture());
         AnalyticsEventRequest request = captor.getValue();
         assertThat(request.eventId()).isEqualTo(EVENT_ID);
-        assertThat(request.eventType()).isEqualTo("EMAIL_SENT");
-        assertThat(request.sourceTopic()).isEqualTo("email-events");
+        assertThat(request.eventType()).isEqualTo("customer-change");
+        assertThat(request.sourceTopic()).isEqualTo("customer-change-event");
         assertThat(request.occurredAt()).isEqualTo(Instant.parse("2026-11-07T18:11:10.588189Z"));
+    }
+
+    @Test
+    void savesThePayloadExactlyAsReceived() {
+        String addressChange = """
+                {"eventId":"6dde44f1-7abf-4a6c-b1bb-3902d50ce0f6","eventType":"customer-address-change",
+                 "occurredAt":"2026-11-09T18:04:18Z","customerId":"ca77df95-f94f-4682-93b7-b82f74cb808d",
+                 "email":"ada@example.com","changes":{"address":{"city":"Reno"}}}
+                """;
+
+        service.record("customer-change-event", addressChange);
+
+        ArgumentCaptor<AnalyticsEventRequest> captor = ArgumentCaptor.forClass(AnalyticsEventRequest.class);
+        verify(eventService).create(captor.capture());
+        assertThat(captor.getValue().payload()).isEqualTo(addressChange);
+        assertThat(captor.getValue().eventType()).isEqualTo("customer-address-change");
     }
 
     @Test
     void ignoresDuplicateEvent() {
         when(eventService.create(any())).thenThrow(new DuplicateAnalyticsEventException(EVENT_ID));
 
-        assertThat(service.record("email-events", EMAIL_SENT)).isFalse();
+        assertThat(service.record("customer-change-event", EVENT)).isFalse();
     }
 
     @Test
     void rejectsEventWithoutEventId() {
-        String json = "{\"eventType\":\"EMAIL_SENT\",\"occurredAt\":\"2026-11-07T18:11:10Z\"}";
+        String json = "{\"eventType\":\"customer-change\",\"occurredAt\":\"2026-11-07T18:11:10Z\"}";
 
-        assertThatThrownBy(() -> service.record("email-events", json))
+        assertThatThrownBy(() -> service.record("customer-change-event", json))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("eventId");
+        verifyNoInteractions(eventService);
+    }
+
+    @Test
+    void rejectsAnUnreadableOccurredAtSoItIsNotRetried() {
+        String json = EVENT.replace("2026-11-07T18:11:10.588189Z", "yesterday");
+
+        assertThatThrownBy(() -> service.record("customer-change-event", json))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("occurredAt");
+        verifyNoInteractions(eventService);
+    }
+
+    @Test
+    void rejectsAnEventWithoutACustomerId() {
+        String json = EVENT.replace("\"customerId\":\"ca77df95-f94f-4682-93b7-b82f74cb808d\",", "");
+
+        assertThatThrownBy(() -> service.record("customer-change-event", json))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("customerId");
         verifyNoInteractions(eventService);
     }
 }
